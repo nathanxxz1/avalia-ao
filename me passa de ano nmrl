@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciador de Aulas e Horários</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+        body {
+            background-color: #f4f6f9;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+            color: #1e293b;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .card {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+        h2 {
+            margin-top: 0;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 8px;
+            color: #0f172a;
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px;
+            margin-top: 4px;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+        }
+        button {
+            margin-top: 15px;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            color: #fff;
+            background-color: #2563eb;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #1d4ed8;
+        }
+        button.btn-danger {
+            background-color: #dc2626;
+            width: auto;
+            padding: 5px 10px;
+            margin-top: 0;
+        }
+        button.btn-danger:hover {
+            background-color: #b91c1c;
+        }
+        button.btn-secondary {
+            background-color: #475569;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+        th, td {
+            border: 1px solid #e2e8f0;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f8fafc;
+        }
+        .alerta {
+            max-width: 1000px;
+            margin: 0 auto 20px auto;
+            padding: 12px;
+            border-radius: 6px;
+            display: none;
+            font-weight: bold;
+        }
+        .alerta.sucesso {
+            background-color: #dcfce7;
+            color: #166534;
+            border: 1px solid #86efac;
+        }
+        .alerta.erro {
+            background-color: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+        }
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Painel da API - Aulas e Horários</h1>
+
+    <div id="mensagem" class="alerta"></div>
+
+    <div class="container">
+        <!-- COLUNA 1: AULAS -->
+        <div class="card">
+            <h2>1. Aulas</h2>
+            <form id="formAula">
+                <label>Série (ex: 2º):</label>
+                <input type="text" id="serie" maxlength="2" required placeholder="2º">
+
+                <label>Turma (ex: DSB):</label>
+                <input type="text" id="turma" maxlength="6" required placeholder="DSB">
+
+                <label>Componente:</label>
+                <input type="text" id="componente" maxlength="100" required placeholder="Programação Back End">
+
+                <label>Professor:</label>
+                <input type="text" id="professor" maxlength="100" required placeholder="Ronaldo">
+
+                <button type="submit">Cadastrar Aula (POST /aula)</button>
+            </form>
+
+            <button class="btn-secondary" onclick="listarAulas()">Atualizar Lista de Aulas (GET /aula)</button>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Série/Turma</th>
+                        <th>Componente</th>
+                        <th>Professor</th>
+                        <th>Ação</th>
+                    </tr>
+                </thead>
+                <tbody id="tabelaAulas"></tbody>
+            </table>
+        </div>
+
+        <!-- COLUNA 2: HORÁRIOS -->
+        <div class="card">
+            <h2>2. Horários de Aula</h2>
+            <form id="formHorario">
+                <label>ID da Aula (idaula):</label>
+                <input type="number" id="idaula" required placeholder="Ex: 1 (ou 99 para testar erro)">
+
+                <label>Dia da Semana (máx. 7 letras):</label>
+                <select id="dia_semana" required>
+                    <option value="Segunda">Segunda</option>
+                    <option value="Terça">Terça</option>
+                    <option value="Quarta">Quarta</option>
+                    <option value="Quinta">Quinta</option>
+                    <option value="Sexta">Sexta</option>
+                </select>
+
+                <label>Ordem da Aula (1ª, 2ª, etc.):</label>
+                <input type="number" id="ordem" required placeholder="1">
+
+                <button type="submit">Cadastrar Horário (POST /horario)</button>
+            </form>
+
+            <label style="margin-top: 20px;">Consultar Horários por Dia (GET /horario/:dia):</label>
+            <select id="filtroDia" onchange="buscarHorariosPorDia()">
+                <option value="Segunda">Segunda</option>
+                <option value="Terça">Terça</option>
+                <option value="Quarta">Quarta</option>
+                <option value="Quinta">Quinta</option>
+                <option value="Sexta">Sexta</option>
+            </select>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Ordem</th>
+                        <th>Aula (ID)</th>
+                        <th>Componente / Prof.</th>
+                        <th>Ação</th>
+                    </tr>
+                </thead>
+                <tbody id="tabelaHorarios"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "http://localhost:3000";
+
+        function mostrarMensagem(texto, tipo) {
+            const div = document.getElementById("mensagem");
+            div.textContent = texto;
+            div.className = "alerta " + tipo;
+            div.style.display = "block";
+        }
+
+        // ==================== FUNÇÕES DE AULA ====================
+
+        // GET /aula
+        async function listarAulas() {
+            try {
+                const resposta = await fetch(`${API_URL}/aula`);
+                const dados = await resposta.json();
+
+                const tbody = document.getElementById("tabelaAulas");
+                tbody.innerHTML = "";
+
+                dados.forEach(aula => {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${aula.id}</td>
+                            <td>${aula.serie} ${aula.turma}</td>
+                            <td>${aula.componente}</td>
+                            <td>${aula.professor}</td>
+                            <td>
+                                <button class="btn-danger" onclick="deletarAula(${aula.id})">Excluir</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            } catch (erro) {
+                mostrarMensagem("Erro ao conectar com a API: " + erro.message, "erro");
+            }
+        }
+
+        // POST /aula
+        document.getElementById("formAula").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const novaAula = {
+                serie: document.getElementById("serie").value,
+                turma: document.getElementById("turma").value,
+                componente: document.getElementById("componente").value,
+                professor: document.getElementById("professor").value
+            };
+
+            try {
+                const resposta = await fetch(`${API_URL}/aula`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(novaAula)
+                });
+                const dados = await resposta.json();
+
+                if (resposta.ok) {
+                    mostrarMensagem(dados.resultado, "sucesso");
+                    document.getElementById("formAula").reset();
+                    listarAulas();
+                } else {
+                    mostrarMensagem(dados.erro, "erro");
+                }
+            } catch (erro) {
+                mostrarMensagem("Erro na requisição: " + erro.message, "erro");
+            }
+        });
+
+        // DELETE /aula/:id
+        async function deletarAula(id) {
+            try {
+                const resposta = await fetch(`${API_URL}/aula/${id}`, {
+                    method: "DELETE"
+                });
+                const dados = await resposta.json();
+
+                if (resposta.ok) {
+                    mostrarMensagem(dados.resultado, "sucesso");
+                    listarAulas();
+                } else {
+                    mostrarMensagem(dados.erro, "erro");
+                }
+            } catch (erro) {
+                mostrarMensagem("Erro ao excluir aula: " + erro.message, "erro");
+            }
+        }
+
+        // ==================== FUNÇÕES DE HORÁRIO ====================
+
+        // POST /horario
+        document.getElementById("formHorario").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const novoHorario = {
+                idaula: Number(document.getElementById("idaula").value),
